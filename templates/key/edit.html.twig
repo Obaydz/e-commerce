@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Key{% endblock %}
+
+{% block body %}
+    <h1>Edit Key</h1>
+
+    {{ include('key/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_key_index') }}">back to list</a>
+
+    {{ include('key/_delete_form.html.twig') }}
+{% endblock %}

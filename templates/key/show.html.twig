@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Key{% endblock %}
+
+{% block body %}
+    <h1>Key</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ key.id }}</td>
+            </tr>
+            <tr>
+                <th>Key</th>
+                <td>{{ key.key }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_key_index') }}">back to list</a>
+
+    <a href="{{ path('app_key_edit', {'id': key.id}) }}">edit</a>
+
+    {{ include('key/_delete_form.html.twig') }}
+{% endblock %}
