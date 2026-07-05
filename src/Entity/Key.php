@@ -6,8 +6,10 @@ use App\Repository\KeyRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: KeyRepository::class)]
+#[ORM\Table(name: 'api_key')]
 class Key
 {
     #[ORM\Id]
@@ -15,13 +17,14 @@ class Key
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 30)]
+    #[ORM\Column(name: 'token', length: 32)]
     private ?string $key = null;
 
     /**
      * @var Collection<int, Category>
      */
     #[ORM\OneToMany(targetEntity: Category::class, mappedBy: 'apikey')]
+    #[Ignore]
     private Collection $categories;
 
     public function __construct()

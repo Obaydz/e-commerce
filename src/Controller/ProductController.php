@@ -1,81 +1,88 @@
 <?php
 
+// src/Controller/ProductController.php
+
 namespace App\Controller;
 
-use App\Entity\Product;
-use App\Form\ProductType;
-use App\Repository\ProductRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Interface\ProductServiceInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/product')]
-final class ProductController extends AbstractController
+#[Route('/products')]
+class ProductController extends AbstractController
 {
-    #[Route(name: 'app_product_index', methods: ['GET'])]
-    public function index(ProductRepository $productRepository): Response
+    public function __construct(private ProductServiceInterface $productService) {}
+
+    #[Route('', methods: ['GET'])]
+    public function index(Request $request): JsonResponse
     {
-        return $this->render('product/index.html.twig', [
-            'products' => $productRepository->findAll(),
-        ]);
+        $apiKey = $request->attributes->get('apiKey');
+        $products = $this->productService->getAll($apiKey);
+
+        return $this->json($products);
     }
 
-    #[Route('/new', name: 'app_product_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', methods: ['GET'])]
+    public function show(int $id, Request $request): JsonResponse
     {
-        $product = new Product();
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
+        $apiKey = $request->attributes->get('apiKey');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($product);
-            $entityManager->flush();
+        try {
+            $product = $this->productService->getOne($id, $apiKey);
+            return $this->json($product);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+        }
+    }
 
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+    #[Route('', methods: ['POST'])]
+    public function create(Request $request): JsonResponse
+    {
+        $apiKey = $request->attributes->get('apiKey');
+        $data = json_decode($request->getContent(), true);
+
+        if (empty($data['name']) || empty($data['price']) || empty($data['categoryId'])) {
+            return $this->json(['error' => 'name, price and categoryId are required'], 422);
         }
 
-        return $this->render('product/new.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
+        try {
+            $product = $this->productService->create($data, $apiKey);
+            return $this->json($product, 201);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+        }
     }
 
-    #[Route('/{id}', name: 'app_product_show', methods: ['GET'])]
-    public function show(Product $product): Response
+    #[Route('/{id}', methods: ['PUT'])]
+    public function update(int $id, Request $request): JsonResponse
     {
-        return $this->render('product/show.html.twig', [
-            'product' => $product,
-        ]);
-    }
+        $apiKey = $request->attributes->get('apiKey');
+        $data = json_decode($request->getContent(), true);
 
-    #[Route('/{id}/edit', name: 'app_product_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Product $product, EntityManagerInterface $entityManager): Response
-    {
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+        if (empty($data)) {
+            return $this->json(['error' => 'No data provided'], 422);
         }
 
-        return $this->render('product/edit.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
+        try {
+            $product = $this->productService->update($id, $data, $apiKey);
+            return $this->json($product);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+        }
     }
 
-    #[Route('/{id}', name: 'app_product_delete', methods: ['POST'])]
-    public function delete(Request $request, Product $product, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(int $id, Request $request): JsonResponse
     {
-        if ($this->isCsrfTokenValid('delete'.$product->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($product);
-            $entityManager->flush();
-        }
+        $apiKey = $request->attributes->get('apiKey');
 
-        return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+        try {
+            $this->productService->delete($id, $apiKey);
+            return $this->json(['message' => 'Product deleted'], 200);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+        }
     }
 }
